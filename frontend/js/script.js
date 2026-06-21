@@ -102,11 +102,221 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+// Device Management Data & Functions
+const deviceData = {
+    currentDevice: {
+        id: 'current',
+        name: 'MacBook Pro',
+        browser: 'Chrome 125',
+        os: 'macOS 14.4',
+        location: '北京市 · 朝阳区',
+        ip: '220.181.38.148',
+        loginTime: '2026-06-21 14:32',
+        isCurrent: true,
+        isRisk: false,
+        isTrusted: false
+    },
+    devices: [
+        {
+            id: 'current',
+            name: 'MacBook Pro',
+            browser: 'Chrome 125',
+            os: 'macOS 14.4',
+            location: '北京市 · 朝阳区',
+            ip: '220.181.38.148',
+            loginTime: '2026-06-21 14:32',
+            isCurrent: true,
+            isRisk: false,
+            isTrusted: false
+        },
+        {
+            id: 'dev-2',
+            name: 'iPhone 15',
+            browser: 'Safari 移动端',
+            os: 'iOS 17.4',
+            location: '北京市 · 海淀区',
+            ip: '220.181.38.150',
+            loginTime: '2026-06-20 09:15',
+            isCurrent: false,
+            isRisk: false,
+            isTrusted: true
+        },
+        {
+            id: 'dev-3',
+            name: 'Windows PC',
+            browser: 'Firefox 126',
+            os: 'Windows 11',
+            location: '广东省 · 深圳市 · 南山区',
+            ip: '113.108.238.56',
+            loginTime: '2026-06-19 23:47',
+            isCurrent: false,
+            isRisk: true,
+            isTrusted: false
+        },
+        {
+            id: 'dev-4',
+            name: 'iPad Air',
+            browser: 'Safari 移动端',
+            os: 'iPadOS 17.4',
+            location: '北京市 · 朝阳区',
+            ip: '220.181.38.148',
+            loginTime: '2026-06-18 18:20',
+            isCurrent: false,
+            isRisk: false,
+            isTrusted: true
+        }
+    ]
+};
+
+function getDeviceIconSvg(isRisk) {
+    if (isRisk) {
+        return `<svg viewBox="0 0 24 24" width="20" height="20" fill="#ff4d4f"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" width="20" height="20" fill="#1677ff"><path d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>`;
+}
+
+function getDeviceTags(device) {
+    let tags = '';
+    if (device.isCurrent) {
+        tags += `<span class="device-item-tag current">当前设备</span>`;
+    }
+    if (device.isRisk) {
+        tags += `<span class="device-item-tag risk">风险设备</span>`;
+    } else if (device.isTrusted) {
+        tags += `<span class="device-item-tag">已信任</span>`;
+    }
+    return tags;
+}
+
+function renderDeviceList() {
+    const deviceListEl = document.getElementById('deviceList');
+    if (!deviceListEl) return;
+
+    deviceListEl.innerHTML = deviceData.devices.map(device => `
+        <div class="device-item ${device.isRisk ? 'risk' : ''}" data-device-id="${device.id}">
+            <div class="device-item-icon">
+                ${getDeviceIconSvg(device.isRisk)}
+            </div>
+            <div class="device-item-info">
+                <div class="device-item-header">
+                    <span class="device-item-name">${device.name}</span>
+                    ${getDeviceTags(device)}
+                </div>
+                <p class="device-item-detail">
+                    <span>浏览器：</span>${device.browser}<br>
+                    <span>地　点：</span>${device.location}<br>
+                    <span>时　间：</span>${device.loginTime}
+                </p>
+            </div>
+            ${!device.isCurrent ? `
+                <div class="device-item-action">
+                    <button class="logout-btn" onclick="logoutDevice('${device.id}')">下线</button>
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+function showDeviceTrustTip() {
+    const tipEl = document.getElementById('deviceTrustTip');
+    if (tipEl) {
+        tipEl.style.display = 'flex';
+    }
+}
+
+function hideDeviceTrustTip() {
+    const tipEl = document.getElementById('deviceTrustTip');
+    if (tipEl) {
+        tipEl.style.display = 'none';
+    }
+}
+
+function openDeviceModal() {
+    const overlay = document.getElementById('deviceModalOverlay');
+    if (overlay) {
+        renderDeviceList();
+        overlay.style.display = 'flex';
+    }
+}
+
+function closeDeviceModal() {
+    const overlay = document.getElementById('deviceModalOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function trustCurrentDevice() {
+    const currentDev = deviceData.devices.find(d => d.isCurrent);
+    if (currentDev) {
+        currentDev.isTrusted = true;
+        deviceData.currentDevice.isTrusted = true;
+    }
+    showToast('已信任此设备', 'success');
+    hideDeviceTrustTip();
+}
+
+function logoutDevice(deviceId) {
+    const idx = deviceData.devices.findIndex(d => d.id === deviceId);
+    if (idx > -1) {
+        deviceData.devices.splice(idx, 1);
+        renderDeviceList();
+        showToast('已下线该设备', 'success');
+    }
+}
+
 // Validation Logic
 document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('loginBtn');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
+
+    // Device trust tip close button
+    const deviceTrustClose = document.getElementById('deviceTrustClose');
+    if (deviceTrustClose) {
+        deviceTrustClose.addEventListener('click', hideDeviceTrustTip);
+    }
+
+    // Trust device button
+    const trustDeviceBtn = document.getElementById('trustDeviceBtn');
+    if (trustDeviceBtn) {
+        trustDeviceBtn.addEventListener('click', trustCurrentDevice);
+    }
+
+    // Manage devices button
+    const manageDevicesBtn = document.getElementById('manageDevicesBtn');
+    if (manageDevicesBtn) {
+        manageDevicesBtn.addEventListener('click', openDeviceModal);
+    }
+
+    // Modal close button
+    const deviceModalClose = document.getElementById('deviceModalClose');
+    if (deviceModalClose) {
+        deviceModalClose.addEventListener('click', closeDeviceModal);
+    }
+
+    // Modal OK button
+    const deviceModalOkBtn = document.getElementById('deviceModalOkBtn');
+    if (deviceModalOkBtn) {
+        deviceModalOkBtn.addEventListener('click', closeDeviceModal);
+    }
+
+    // Click overlay to close modal
+    const deviceModalOverlay = document.getElementById('deviceModalOverlay');
+    if (deviceModalOverlay) {
+        deviceModalOverlay.addEventListener('click', (e) => {
+            if (e.target === deviceModalOverlay) {
+                closeDeviceModal();
+            }
+        });
+    }
+
+    // ESC key to close modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDeviceModal();
+        }
+    });
 
     if (loginBtn) {
         loginBtn.addEventListener('click', () => {
@@ -125,12 +335,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // If both valid
             showToast('登录成功', 'success');
-            
-            // Optional: Clear inputs or redirect
-            // usernameInput.value = '';
-            // passwordInput.value = '';
+            setTimeout(() => {
+                showDeviceTrustTip();
+            }, 500);
         });
     }
 });
